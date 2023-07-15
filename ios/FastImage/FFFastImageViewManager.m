@@ -1,4 +1,5 @@
 #import "FFFastImageViewManager.h"
+#import "FFFastImageIgnoreURLParamsMapper.h"
 #import "FFFastImageView.h"
 
 #import <SDWebImage/SDImageCache.h>
@@ -44,6 +45,7 @@ RCT_EXPORT_METHOD(clearMemoryCache:(RCTPromiseResolveBlock)resolve reject:(RCTPr
 
 RCT_EXPORT_METHOD(clearDiskCache:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
+    [FFFastImageIgnoreURLParamsMapper.shared clear];
     [SDImageCache.sharedImageCache clearDiskOnCompletion:^(){
         resolve(NULL);
     }];

@@ -76,15 +76,15 @@ cd ios && pod install
 import FastImage from 'react-native-fast-image'
 
 const YourImage = () => (
-    <FastImage
-        style={{ width: 200, height: 200 }}
-        source={{
-            uri: 'https://unsplash.it/400/400?image=1',
-            headers: { Authorization: 'someAuthToken' },
-            priority: FastImage.priority.normal,
-        }}
-        resizeMode={FastImage.resizeMode.contain}
-    />
+	<FastImage
+		style={{ width: 200, height: 200 }}
+		source={{
+			uri: 'https://unsplash.it/400/400?image=1',
+			headers: { Authorization: 'someAuthToken' },
+			priority: FastImage.priority.normal,
+		}}
+		resizeMode={FastImage.resizeMode.contain}
+	/>
 )
 ```
 
@@ -140,6 +140,14 @@ Headers to load the image with. e.g. `{ Authorization: 'someAuthToken' }`.
 -   `FastImage.cacheControl.immutable` - **(Default)** - Only updates if url changes.
 -   `FastImage.cacheControl.web` - Use headers and follow normal caching procedures.
 -   `FastImage.cacheControl.cacheOnly` - Only show images from cache, do not make any network requests.
+
+---
+
+### `source.cacheKeyIgnoreURLParams?: boolean`
+
+If true will be cached under url without query params
+Useful when image url is dynamic and query params contain security information
+For example, when downloading images with S3 signed URL's
 
 ---
 
@@ -218,14 +226,14 @@ Preload images to display later. e.g.
 
 ```js
 FastImage.preload([
-    {
-        uri: 'https://facebook.github.io/react/img/logo_og.png',
-        headers: { Authorization: 'someAuthToken' },
-    },
-    {
-        uri: 'https://facebook.github.io/react/img/logo_og.png',
-        headers: { Authorization: 'someAuthToken' },
-    },
+	{
+		uri: 'https://facebook.github.io/react/img/logo_og.png',
+		headers: { Authorization: 'someAuthToken' },
+	},
+	{
+		uri: 'https://facebook.github.io/react/img/logo_og.png',
+		headers: { Authorization: 'someAuthToken' },
+	},
 ])
 ```
 

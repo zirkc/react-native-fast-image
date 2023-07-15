@@ -1,6 +1,7 @@
-import { StyleSheet, Platform, NativeModules } from 'react-native'
 import React from 'react'
+import { NativeModules, Platform, StyleSheet } from 'react-native'
 import renderer from 'react-test-renderer'
+
 import FastImage from './index'
 
 const style = StyleSheet.create({ image: { width: 44, height: 44 } })

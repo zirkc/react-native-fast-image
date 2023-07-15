@@ -19,6 +19,7 @@ public class FastImageSource extends ImageSource {
     private static final String LOCAL_FILE_SCHEME = "file";
     private final Headers mHeaders;
     private Uri mUri;
+    private Boolean cacheKeyIgnoreURLParams = false;
 
     public static boolean isBase64Uri(Uri uri) {
         return DATA_SCHEME.equals(uri.getScheme());
@@ -45,13 +46,18 @@ public class FastImageSource extends ImageSource {
     }
 
     public FastImageSource(Context context, String source, @Nullable Headers headers) {
-        this(context, source, 0.0d, 0.0d, headers);
+        this(context, source, 0.0d, 0.0d, headers, false);
     }
 
-    public FastImageSource(Context context, String source, double width, double height, @Nullable Headers headers) {
+    public FastImageSource(Context context, String source, @Nullable Headers headers, @Nullable Boolean cacheKeyIgnoreURLParams) {
+        this(context, source, 0.0d, 0.0d, headers, cacheKeyIgnoreURLParams);
+    }
+
+    public FastImageSource(Context context, String source, double width, double height, @Nullable Headers headers, @Nullable Boolean cacheKeyIgnoreURLParams) {
         super(context, source, width, height);
         mHeaders = headers == null ? Headers.DEFAULT : headers;
         mUri = super.getUri();
+        cacheKeyIgnoreURLParams = cacheKeyIgnoreURLParams;
 
         if (isResource() && TextUtils.isEmpty(mUri.toString())) {
             throw new Resources.NotFoundException("Local Resource Not Found. Resource: '" + getSource() + "'.");
@@ -107,6 +113,9 @@ public class FastImageSource extends ImageSource {
     }
 
     public GlideUrl getGlideUrl() {
+        if (cacheKeyIgnoreURLParams) {
+            return new FastImageGlideUrlWithoutQueryParams(getUri().toString(), getHeaders());
+        }
         return new GlideUrl(getUri().toString(), getHeaders());
     }
 }

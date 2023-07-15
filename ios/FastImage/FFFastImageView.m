@@ -1,4 +1,5 @@
 #import "FFFastImageView.h"
+#import "FFFastImageIgnoreURLParamsMapper.h"
 #import <SDWebImage/UIImage+MultiFormat.h>
 #import <SDWebImage/UIView+WebCache.h>
 
@@ -185,6 +186,12 @@
                 break;
             case FFFCacheControlImmutable:
                 break;
+        }
+
+        if (_source.cacheKeyIgnoreURLParams) {
+            [[FFFastImageIgnoreURLParamsMapper shared] add:_source.url];
+        } else {
+            [[FFFastImageIgnoreURLParamsMapper shared] remove:_source.url];
         }
 
         if (self.onFastImageLoadStart) {
