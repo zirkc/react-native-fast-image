@@ -31,8 +31,9 @@
 	self = [super init];
 	if (self) {
 		_staticUrls = [NSMutableSet new];
-		[SDWebImageCacheKeyFilter cacheKeyFilterWithBlock:^NSString * _Nullable(NSURL * _Nullable url) {
-			NSString *staticURLString = [[url staticURL] absoluteString];
+		__weak typeof(self) weakSelf = self;		
+		SDWebImageManager.sharedManager.cacheKeyFilter = [SDWebImageCacheKeyFilter cacheKeyFilterWithBlock:^NSString * _Nullable(NSURL * _Nullable url) {
+			NSString *staticURLString = [weakSelf getCacheKey:url];
 			if ([_staticUrls containsObject:staticURLString]) {
 				return staticURLString;
 			}
@@ -43,15 +44,19 @@
 }
 
 - (void)add:(NSURL*)url {
-	[_staticUrls addObject:[url staticURL].absoluteString];
+	[_staticUrls addObject:[self getCacheKey:url]];
 }
 
 - (void)remove:(NSURL*)url {
-	[_staticUrls removeObject:[url staticURL].absoluteString];
+	[_staticUrls removeObject:[self getCacheKey:url]];
 }
 
 - (void)clear {
 	[_staticUrls removeAllObjects];
+}
+
+- (NSString*)getCacheKey:(NSURL*)url {
+	return [[url staticURL] absoluteString];
 }
 
 @end

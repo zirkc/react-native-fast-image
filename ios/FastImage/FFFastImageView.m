@@ -1,5 +1,6 @@
 #import "FFFastImageView.h"
 #import "FFFastImageIgnoreURLParamsMapper.h"
+#import "FFFastImageImageFetchStore.h"
 #import <SDWebImage/UIImage+MultiFormat.h>
 #import <SDWebImage/UIView+WebCache.h>
 
@@ -151,6 +152,27 @@
             return;
         }
 
+        if (_source.url != nil) {
+            if (_source.cacheKeyIgnoreURLParams) {
+            [[FFFastImageIgnoreURLParamsMapper shared] add:_source.url];
+            } else {
+                [[FFFastImageIgnoreURLParamsMapper shared] remove:_source.url];
+            }
+        }
+
+        NSString *cacheKey = [[SDWebImageManager sharedManager] cacheKeyForURL:_source.url];
+        UIImage *cachedImage = [[SDImageCache sharedImageCache] imageFromCacheForKey:cacheKey];
+        if (cachedImage) {
+            // If the image is in the cache, use it directly
+            [self setImage:cachedImage];
+            self.hasCompleted = YES;
+            [self sendOnLoad:cachedImage];
+            if (self.onFastImageLoadEnd) {
+                self.onFastImageLoadEnd(@{});
+            }
+            return;
+        }
+
         // Set headers.
         NSDictionary* headers = _source.headers;
         SDWebImageDownloaderRequestModifier* requestModifier = [SDWebImageDownloaderRequestModifier requestModifierWithBlock: ^NSURLRequest* _Nullable (NSURLRequest* _Nonnull request) {
@@ -177,6 +199,7 @@
                 break;
         }
 
+        // Set cache.
         switch (_source.cacheControl) {
             case FFFCacheControlWeb:
                 options |= SDWebImageRefreshCached;
@@ -188,12 +211,6 @@
                 break;
         }
 
-        if (_source.cacheKeyIgnoreURLParams) {
-            [[FFFastImageIgnoreURLParamsMapper shared] add:_source.url];
-        } else {
-            [[FFFastImageIgnoreURLParamsMapper shared] remove:_source.url];
-        }
-
         if (self.onFastImageLoadStart) {
             self.onFastImageLoadStart(@{});
             self.hasSentOnLoadStart = YES;
@@ -203,14 +220,40 @@
         self.hasCompleted = NO;
         self.hasErrored = NO;
 
-        [self downloadImage: _source options: options context: context];
+        __weak typeof(self) weakSelf = self;
+        FFFastImageCompletionBlock completion = ^(UIImage* _Nullable image, NSError* _Nullable error) {
+            if (error) {
+                weakSelf.hasErrored = YES;
+                if (weakSelf.onFastImageError) {
+                    weakSelf.onFastImageError(@{});
+                }
+                if (weakSelf.onFastImageLoadEnd) {
+                    weakSelf.onFastImageLoadEnd(@{});
+                }
+            } else {
+                weakSelf.hasCompleted = YES;
+                [weakSelf setImage:image];
+                [weakSelf sendOnLoad:image];
+                if (weakSelf.onFastImageLoadEnd) {
+                    weakSelf.onFastImageLoadEnd(@{});
+                }
+            }
+        };
+
+        NSArray<FFFastImageCompletionBlock> *existingPromise = [[FFFastImageImageFetchStore shared] get:_source.url];
+        if (!existingPromise) {
+            [self downloadImage: _source options: options context: context];
+        }
+
+        // Add the completion to the store
+        [[FFFastImageImageFetchStore shared] add:_source.url completion:completion];
     } else if (_defaultSource) {
         [self setImage: _defaultSource];
     }
 }
 
 - (void) downloadImage: (FFFastImageSource*)source options: (SDWebImageOptions)options context: (SDWebImageContext*)context {
-    __weak typeof(self) weakSelf = self; // Always use a weak reference to self in blocks
+    __weak typeof(self) weakSelf = self;
     [self sd_setImageWithURL: _source.url
             placeholderImage: _defaultSource
                      options: options
@@ -222,26 +265,21 @@
                                     @"total": @(expectedSize)
                             });
                         }
-                    } completed: ^(UIImage* _Nullable image,
-                    NSError* _Nullable error,
-                    SDImageCacheType cacheType,
-                    NSURL* _Nullable imageURL) {
-                if (error) {
-                    weakSelf.hasErrored = YES;
-                    if (weakSelf.onFastImageError) {
-                        weakSelf.onFastImageError(@{});
                     }
-                    if (weakSelf.onFastImageLoadEnd) {
-                        weakSelf.onFastImageLoadEnd(@{});
-                    }
-                } else {
-                    weakSelf.hasCompleted = YES;
-                    [weakSelf sendOnLoad: image];
-                    if (weakSelf.onFastImageLoadEnd) {
-                        weakSelf.onFastImageLoadEnd(@{});
-                    }
-                }
-            }];
+                    completed: ^(UIImage* _Nullable image,
+                                NSError* _Nullable error,
+                                SDImageCacheType cacheType,
+                                NSURL* _Nullable imageURL) {
+                        // Fetch all the callbacks for this URL
+                        NSArray<FFFastImageCompletionBlock> *completions = [[FFFastImageImageFetchStore shared] get:_source.url];
+                        if (completions) {
+                            // Loop through all the completion callbacks and call them
+                            for (FFFastImageCompletionBlock completion in completions) {
+                                completion(image, error);
+                            }
+                            [[FFFastImageImageFetchStore shared] remove:_source.url];
+                        }
+                    }];
 }
 
 - (void) dealloc {

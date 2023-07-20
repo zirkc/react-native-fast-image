@@ -1,7 +1,5 @@
 package com.dylanvann.fastimage;
 
-import static com.dylanvann.fastimage.FastImageRequestListener.REACT_ON_ERROR_EVENT;
-
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
@@ -13,6 +11,8 @@ import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.request.Request;
+import com.bumptech.glide.request.target.ImageViewTarget;
+import com.bumptech.glide.request.target.Target;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
@@ -27,6 +27,10 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 class FastImageViewWithUrl extends AppCompatImageView {
+    public static final String REACT_ON_ERROR_EVENT = "onFastImageError";
+    public static final String REACT_ON_LOAD_EVENT = "onFastImageLoad";
+    public static final String REACT_ON_LOAD_END_EVENT = "onFastImageLoadEnd";
+
     private boolean mNeedsReload = false;
     private ReadableMap mSource = null;
     private Drawable mDefaultSource = null;
@@ -105,7 +109,7 @@ class FastImageViewWithUrl extends AppCompatImageView {
         this.glideUrl = glideUrl;
         clearView(requestManager);
 
-        String key = glideUrl == null ? null : glideUrl.toStringUrl();
+        final String key = glideUrl == null ? null : glideUrl.getCacheKey();
 
         if (glideUrl != null) {
             FastImageOkHttpProgressGlideModule.expect(key, manager);
@@ -129,7 +133,40 @@ class FastImageViewWithUrl extends AppCompatImageView {
                     new WritableNativeMap());
         }
 
-        if (requestManager != null) {
+        final boolean hasPreviousListeners = FastImageFetchStore.getInstance().get(key) != null;
+        final FastImageViewWithUrl that = this;
+        FastImageFetchStore.getInstance().add(key, new FastImageFetchStoreListener() {
+            @Override
+            public void onLoadFailed() {
+                FastImageOkHttpProgressGlideModule.forget(key);
+                ThemedReactContext context = (ThemedReactContext) that.getContext();
+                RCTEventEmitter eventEmitter = context.getJSModule(RCTEventEmitter.class);
+                int viewId = that.getId();
+                eventEmitter.receiveEvent(viewId, REACT_ON_ERROR_EVENT, new WritableNativeMap());
+                eventEmitter.receiveEvent(viewId, REACT_ON_LOAD_END_EVENT, new WritableNativeMap());
+            }
+
+            @Override
+            public void onResourceReady(Drawable resource) {
+                if (hasPreviousListeners && requestManager != null) {
+                    RequestBuilder<Drawable> builder = requestManager
+                        .load(resource)
+                        .apply(FastImageViewConverter
+                            .getOptions(context, imageSource, mSource)
+                            .placeholder(mDefaultSource)
+                            .fallback(mDefaultSource));
+                    builder.into(that);
+                }
+
+                ThemedReactContext context = (ThemedReactContext) that.getContext();
+                RCTEventEmitter eventEmitter = context.getJSModule(RCTEventEmitter.class);
+                int viewId = that.getId();
+                eventEmitter.receiveEvent(viewId, REACT_ON_LOAD_EVENT, mapFromResource(resource));
+                eventEmitter.receiveEvent(viewId, REACT_ON_LOAD_END_EVENT, new WritableNativeMap());
+            }
+        });
+
+        if (requestManager != null && !hasPreviousListeners) {
             RequestBuilder<Drawable> builder =
                     requestManager
                             // This will make this work for remote and local images. e.g.
@@ -141,11 +178,12 @@ class FastImageViewWithUrl extends AppCompatImageView {
                             .load(imageSource == null ? null : imageSource.getSourceForLoad())
                             .apply(FastImageViewConverter
                                     .getOptions(context, imageSource, mSource)
-                                    .placeholder(mDefaultSource) // show until loaded
-                                    .fallback(mDefaultSource)); // null will not be treated as error
+                                    .placeholder(mDefaultSource)
+                                    .fallback(mDefaultSource));
 
-            if (key != null)
+            if (key != null) {
                 builder.listener(new FastImageRequestListener(key));
+            }
 
             builder.into(this);
         }
@@ -155,5 +193,12 @@ class FastImageViewWithUrl extends AppCompatImageView {
         if (requestManager != null && getTag() != null && getTag() instanceof Request) {
             requestManager.clear(this);
         }
+    }
+
+    private static WritableMap mapFromResource(Drawable resource) {
+        WritableMap resourceData = new WritableNativeMap();
+        resourceData.putInt("width", resource.getIntrinsicWidth());
+        resourceData.putInt("height", resource.getIntrinsicHeight());
+        return resourceData;
     }
 }

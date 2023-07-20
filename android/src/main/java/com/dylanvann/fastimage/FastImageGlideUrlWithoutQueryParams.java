@@ -32,13 +32,4 @@ public class FastImageGlideUrlWithoutQueryParams extends GlideUrl {
         return staticURL;
     }
 
-    @Override
-    public String toString() {
-        return super.getCacheKey();
-    }
-
-	@Override
-	public String toStringUrl() {
-		return super.getCacheKey();
-	}
 }

@@ -8,6 +8,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)add:(NSURL*)url;
 - (void)remove:(NSURL*)url;
 - (void)clear;
+- (NSString*)getCacheKey:(NSURL*)url;
 
 @end
 
