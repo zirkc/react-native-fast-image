@@ -1,5 +1,7 @@
 package com.dylanvann.fastimage;
 
+import androidx.annotation.NonNull;
+
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.load.model.Headers;
 import java.net.URISyntaxException;
@@ -31,5 +33,11 @@ public class FastImageGlideUrlWithoutQueryParams extends GlideUrl {
     public String getCacheKey() {
         return staticURL;
     }
+
+	@NonNull
+	@Override
+	public String toString() {
+		return super.getCacheKey();
+	}
 
 }

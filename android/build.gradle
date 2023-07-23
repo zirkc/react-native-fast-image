@@ -57,7 +57,7 @@ repositories {
     mavenCentral()
 }
 
-def glideVersion = safeExtGet('glideVersion', '4.12.0')
+def glideVersion = safeExtGet('glideVersion', '4.15.1')
 
 dependencies {
     //noinspection GradleDynamicVersion

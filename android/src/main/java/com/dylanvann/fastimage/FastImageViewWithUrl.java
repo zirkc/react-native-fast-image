@@ -1,5 +1,7 @@
 package com.dylanvann.fastimage;
 
+import static com.dylanvann.fastimage.FastImageRequestListener.REACT_ON_ERROR_EVENT;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
@@ -11,8 +13,6 @@ import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.request.Request;
-import com.bumptech.glide.request.target.ImageViewTarget;
-import com.bumptech.glide.request.target.Target;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
@@ -27,10 +27,6 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 class FastImageViewWithUrl extends AppCompatImageView {
-    public static final String REACT_ON_ERROR_EVENT = "onFastImageError";
-    public static final String REACT_ON_LOAD_EVENT = "onFastImageLoad";
-    public static final String REACT_ON_LOAD_END_EVENT = "onFastImageLoadEnd";
-
     private boolean mNeedsReload = false;
     private ReadableMap mSource = null;
     private Drawable mDefaultSource = null;
@@ -133,61 +129,28 @@ class FastImageViewWithUrl extends AppCompatImageView {
                     new WritableNativeMap());
         }
 
-        final boolean hasPreviousListeners = FastImageFetchStore.getInstance().get(key) != null;
-        final FastImageViewWithUrl that = this;
-        FastImageFetchStore.getInstance().add(key, new FastImageFetchStoreListener() {
-            @Override
-            public void onLoadFailed() {
-                FastImageOkHttpProgressGlideModule.forget(key);
-                ThemedReactContext context = (ThemedReactContext) that.getContext();
-                RCTEventEmitter eventEmitter = context.getJSModule(RCTEventEmitter.class);
-                int viewId = that.getId();
-                eventEmitter.receiveEvent(viewId, REACT_ON_ERROR_EVENT, new WritableNativeMap());
-                eventEmitter.receiveEvent(viewId, REACT_ON_LOAD_END_EVENT, new WritableNativeMap());
-            }
+		if (requestManager != null) {
+			RequestBuilder<Drawable> builder =
+				requestManager
+					// This will make this work for remote and local images. e.g.
+					//    - file:///
+					//    - content://
+					//    - res:/
+					//    - android.resource://
+					//    - data:image/png;base64
+					.load(imageSource == null ? null : imageSource.getSourceForLoad())
+					.apply(FastImageViewConverter
+						.getOptions(context, imageSource, mSource)
+						.placeholder(mDefaultSource)
+						.fallback(mDefaultSource));
 
-            @Override
-            public void onResourceReady(Drawable resource) {
-                if (hasPreviousListeners && requestManager != null) {
-                    RequestBuilder<Drawable> builder = requestManager
-                        .load(resource)
-                        .apply(FastImageViewConverter
-                            .getOptions(context, imageSource, mSource)
-                            .placeholder(mDefaultSource)
-                            .fallback(mDefaultSource));
-                    builder.into(that);
-                }
+			if (key != null) {
+				builder.listener(new FastImageRequestListener(key));
+			}
 
-                ThemedReactContext context = (ThemedReactContext) that.getContext();
-                RCTEventEmitter eventEmitter = context.getJSModule(RCTEventEmitter.class);
-                int viewId = that.getId();
-                eventEmitter.receiveEvent(viewId, REACT_ON_LOAD_EVENT, mapFromResource(resource));
-                eventEmitter.receiveEvent(viewId, REACT_ON_LOAD_END_EVENT, new WritableNativeMap());
-            }
-        });
-
-        if (requestManager != null && !hasPreviousListeners) {
-            RequestBuilder<Drawable> builder =
-                    requestManager
-                            // This will make this work for remote and local images. e.g.
-                            //    - file:///
-                            //    - content://
-                            //    - res:/
-                            //    - android.resource://
-                            //    - data:image/png;base64
-                            .load(imageSource == null ? null : imageSource.getSourceForLoad())
-                            .apply(FastImageViewConverter
-                                    .getOptions(context, imageSource, mSource)
-                                    .placeholder(mDefaultSource)
-                                    .fallback(mDefaultSource));
-
-            if (key != null) {
-                builder.listener(new FastImageRequestListener(key));
-            }
-
-            builder.into(this);
-        }
-    }
+			builder.into(this);
+		}
+	}
 
     public void clearView(@Nullable RequestManager requestManager) {
         if (requestManager != null && getTag() != null && getTag() instanceof Request) {

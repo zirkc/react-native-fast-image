@@ -19,7 +19,7 @@ public class FastImageSource extends ImageSource {
     private static final String LOCAL_FILE_SCHEME = "file";
     private final Headers mHeaders;
     private Uri mUri;
-    private Boolean mCacheKeyIgnoreURLParams = false;
+    private boolean mCacheKeyIgnoreURLParams;
 
     public static boolean isBase64Uri(Uri uri) {
         return DATA_SCHEME.equals(uri.getScheme());
@@ -49,11 +49,11 @@ public class FastImageSource extends ImageSource {
         this(context, source, 0.0d, 0.0d, headers, false);
     }
 
-    public FastImageSource(Context context, String source, @Nullable Headers headers, @Nullable Boolean cacheKeyIgnoreURLParams) {
+    public FastImageSource(Context context, String source, @Nullable Headers headers, boolean cacheKeyIgnoreURLParams) {
         this(context, source, 0.0d, 0.0d, headers, cacheKeyIgnoreURLParams);
     }
 
-    public FastImageSource(Context context, String source, double width, double height, @Nullable Headers headers, @Nullable Boolean cacheKeyIgnoreURLParams) {
+    public FastImageSource(Context context, String source, double width, double height, @Nullable Headers headers, boolean cacheKeyIgnoreURLParams) {
         super(context, source, width, height);
         mHeaders = headers == null ? Headers.DEFAULT : headers;
         mUri = super.getUri();

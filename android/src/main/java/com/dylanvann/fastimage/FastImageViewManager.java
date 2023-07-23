@@ -1,8 +1,8 @@
 package com.dylanvann.fastimage;
 
-import static com.dylanvann.fastimage.FastImageViewWithUrl.REACT_ON_ERROR_EVENT;
-import static com.dylanvann.fastimage.FastImageViewWithUrl.REACT_ON_LOAD_END_EVENT;
-import static com.dylanvann.fastimage.FastImageViewWithUrl.REACT_ON_LOAD_EVENT;
+import static com.dylanvann.fastimage.FastImageRequestListener.REACT_ON_ERROR_EVENT;
+import static com.dylanvann.fastimage.FastImageRequestListener.REACT_ON_LOAD_END_EVENT;
+import static com.dylanvann.fastimage.FastImageRequestListener.REACT_ON_LOAD_EVENT;
 
 import android.app.Activity;
 import android.content.Context;
