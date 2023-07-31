@@ -1,7 +1,6 @@
 package com.dylanvann.fastimage;
 
 import static com.bumptech.glide.request.RequestOptions.signatureOf;
-
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -20,6 +19,8 @@ import com.facebook.react.bridge.NoSuchKeyException;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
 
+import jp.wasabeef.glide.transformations.BlurTransformation;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +28,7 @@ import javax.annotation.Nullable;
 
 class FastImageViewConverter {
     private static final Drawable TRANSPARENT_DRAWABLE = new ColorDrawable(Color.TRANSPARENT);
+    private static final int BLUR_SAMPLING = 4;
 
     private static final Map<String, FastImageCacheControl> FAST_IMAGE_CACHE_CONTROL_MAP =
             new HashMap<String, FastImageCacheControl>() {{
@@ -86,7 +88,7 @@ class FastImageViewConverter {
         return headers;
     }
 
-    static RequestOptions getOptions(Context context, FastImageSource imageSource, ReadableMap source) {
+    static RequestOptions getOptions(Context context, FastImageSource imageSource, ReadableMap source, Integer blurRadius) {
         // Get priority.
         final Priority priority = FastImageViewConverter.getPriority(source);
         // Get cache control method.
@@ -114,6 +116,10 @@ class FastImageViewConverter {
                 .skipMemoryCache(skipMemoryCache)
                 .priority(priority)
                 .placeholder(TRANSPARENT_DRAWABLE);
+
+		if (blurRadius > 0) {
+			options = options.transform(new BlurTransformation((int)blurRadius, BLUR_SAMPLING));
+		}
 
         if (imageSource.isResource()) {
             // Every local resource (drawable) in Android has its own unique numeric id, which are

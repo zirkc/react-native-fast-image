@@ -30,6 +30,7 @@ class FastImageViewWithUrl extends AppCompatImageView {
     private boolean mNeedsReload = false;
     private ReadableMap mSource = null;
     private Drawable mDefaultSource = null;
+	private Integer mBlurRadius = null;
 
     public GlideUrl glideUrl;
 
@@ -46,6 +47,10 @@ class FastImageViewWithUrl extends AppCompatImageView {
         mNeedsReload = true;
         mDefaultSource = source;
     }
+
+	public void setBlurRadius(@Nullable Integer blurRadius) {
+		mBlurRadius = blurRadius;
+	}
 
     private boolean isNullOrEmpty(final String url) {
         return url == null || url.trim().isEmpty();
@@ -140,7 +145,7 @@ class FastImageViewWithUrl extends AppCompatImageView {
 					//    - data:image/png;base64
 					.load(imageSource == null ? null : imageSource.getSourceForLoad())
 					.apply(FastImageViewConverter
-						.getOptions(context, imageSource, mSource)
+						.getOptions(context, imageSource, mSource, mBlurRadius)
 						.placeholder(mDefaultSource)
 						.fallback(mDefaultSource));
 
@@ -158,10 +163,4 @@ class FastImageViewWithUrl extends AppCompatImageView {
         }
     }
 
-    private static WritableMap mapFromResource(Drawable resource) {
-        WritableMap resourceData = new WritableNativeMap();
-        resourceData.putInt("width", resource.getIntrinsicWidth());
-        resourceData.putInt("height", resource.getIntrinsicHeight());
-        return resourceData;
-    }
 }
