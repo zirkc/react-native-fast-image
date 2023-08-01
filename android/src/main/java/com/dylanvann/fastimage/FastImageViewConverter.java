@@ -117,7 +117,7 @@ class FastImageViewConverter {
                 .priority(priority)
                 .placeholder(TRANSPARENT_DRAWABLE);
 
-		if (blurRadius > 0) {
+		if (blurRadius != null && blurRadius > 0) {
 			options = options.transform(new BlurTransformation((int)blurRadius, BLUR_SAMPLING));
 		}
 
